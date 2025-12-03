@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,6 +37,18 @@ def parse_args() -> argparse.Namespace:
         help="Path to swe_bench_runs.jsonl from eval-analysis-public.",
     )
     parser.add_argument(
+        "--model-mapping",
+        type=Path,
+        default=REPO_ROOT / "IRT/data/model_run_mapping.csv",
+        help="CSV mapping verified run directories to human-friendly aliases.",
+    )
+    parser.add_argument(
+        "--pyirt-file",
+        type=Path,
+        default=REPO_ROOT / "IRT/data/swebench_all_pyirt.jsonl",
+        help="JSONL with per-agent binary responses from py-irt fitting.",
+    )
+    parser.add_argument(
         "--beta-file",
         type=Path,
         default=REPO_ROOT / "IRT/params/swebench_all_pyirt.csv",
@@ -43,8 +57,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--release-dates",
         type=Path,
-        default=EVAL_ANALYSIS_DIR / "data/external/release_dates.yaml",
+        default=REPO_ROOT / "IRT/data/release_dates.yaml",
         help="YAML file mapping model names to calendar release dates.",
+    )
+    parser.add_argument(
+        "--extra-release-dates",
+        type=Path,
+        default=REPO_ROOT / "IRT/data/extra_release_dates.yaml",
+        help="Optional YAML with additional release dates for new models.",
     )
     parser.add_argument(
         "--output-table",
@@ -72,7 +92,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--n-bootstrap",
         type=int,
-        default=750,
+        default=200,
         help="Number of bootstrap draws per model for confidence intervals.",
     )
     parser.add_argument(
@@ -87,6 +107,60 @@ def parse_args() -> argparse.Namespace:
 def load_release_dates(path: Path) -> dict[str, pd.Timestamp]:
     raw = yaml.safe_load(path.read_text())
     return {agent: pd.to_datetime(date) for agent, date in raw["date"].items()}
+
+
+def load_run_metadata(path: Path) -> dict[str, RunAlias]:
+    """Return mapping from run id -> alias metadata."""
+    if not path.exists():
+        return {}
+
+    df = pd.read_csv(path)
+    required_cols = {"run_id", "display_name", "plot"}
+    if not required_cols.issubset(df.columns):
+        missing = required_cols - set(df.columns)
+        raise ValueError(
+            f"Model mapping file {path} is missing required columns: {missing}"
+        )
+
+    metadata: dict[str, RunAlias] = {}
+    for _, row in df.iterrows():
+        run_id = str(row["run_id"]).strip()
+        if not run_id:
+            continue
+        alias_raw = row.get("display_name", "")
+        alias = str(alias_raw).strip() if not pd.isna(alias_raw) else ""
+        alias = alias or run_id
+        plot_raw = str(row.get("plot", "T")).strip().upper()
+        plot_flag = plot_raw == "T"
+        metadata[run_id] = RunAlias(display_name=alias, plot=plot_flag)
+    return metadata
+
+
+def resolve_release_date(
+    agent: str,
+    release_dates: dict[str, pd.Timestamp],
+    fallbacks: Sequence[str] | None = None,
+) -> pd.Timestamp:
+    candidates: list[str | None] = [agent]
+    if fallbacks:
+        candidates.extend(fallbacks)
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        if not candidate:
+            continue
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if candidate in release_dates:
+            return release_dates[candidate]
+        match = re.match(r"^(\d{8})", candidate)
+        if match:
+            try:
+                return pd.to_datetime(match.group(1))
+            except ValueError:
+                continue
+    return pd.NaT
 
 
 def get_bce_loss(
@@ -225,6 +299,13 @@ def bootstrap_quantile(
 
 
 @dataclass
+@dataclass
+class RunAlias:
+    display_name: str
+    plot: bool
+
+
+@dataclass
 class AgentSummary:
     agent: str
     release_date: pd.Timestamp
@@ -236,16 +317,20 @@ class AgentSummary:
     beta_p50_low: float
     beta_p50_high: float
     task_count: int
+    plot: bool
 
 
 def fit_agent(
     agent_name: str,
     agent_df: pd.DataFrame,
-    release_dates: dict[str, pd.Timestamp],
+    release_lookup: dict[str, pd.Timestamp],
     regularization: float,
     weight_column: str,
     n_bootstrap: int,
     confidence: float,
+    display_name: str | None = None,
+    release_fallbacks: Sequence[str] | None = None,
+    plot_flag: bool = True,
 ) -> AgentSummary | None:
     x = agent_df[["beta"]].to_numpy()
     y = agent_df["score_binarized"].to_numpy()
@@ -268,9 +353,11 @@ def fit_agent(
         confidence=confidence,
     )
 
+    label = display_name or agent_name
+
     return AgentSummary(
-        agent=agent_name,
-        release_date=release_dates.get(agent_name, pd.NaT),
+        agent=label,
+        release_date=resolve_release_date(label, release_lookup, release_fallbacks),
         coefficient=float(model.coef_[0][0]),
         intercept=float(model.intercept_[0]),
         bce_loss=get_bce_loss(x, y, model, weights),
@@ -279,6 +366,7 @@ def fit_agent(
         beta_p50_low=beta_p50_low,
         beta_p50_high=beta_p50_high,
         task_count=len(agent_df),
+        plot=plot_flag,
     )
 
 
@@ -286,23 +374,28 @@ def plot_horizon(
     summaries: pd.DataFrame,
     output_path: Path,
 ) -> None:
+    # if "plot" in summaries.columns:
+        # summaries = summaries[summaries["plot"]]
     summaries = summaries.dropna(subset=["release_date"]).sort_values("release_date")
 
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(12, 10))
     colors = {
-        "Claude": "#8B4DC9",
-        "GPT": "#2B8FB0",
-        "o1": "#2E8B57",
+        "Claude": "#8000FF",
+        "GPT": "#0062FF",
+        "Gemini": "#2E8B57",
+        "Qwen": "#FF00E6",
     }
 
     for _, row in summaries.iterrows():
         color = (
             colors["Claude"]
-            if "Claude" in row.agent
+            if "claude" in row.agent.lower()
             else colors["GPT"]
-            if "GPT" in row.agent
-            else colors["o1"]
-            if "o1" in row.agent
+            if "gpt" in row.agent.lower() or "o1" in row.agent.lower()
+            else colors["Gemini"]
+            if "gemini" in row.agent.lower()
+            else colors["Qwen"]
+            if "qwen" in row.agent.lower()
             else "#555555"
         )
         ax.errorbar(
@@ -320,14 +413,14 @@ def plot_horizon(
             capsize=3,
             label=row.agent if row.agent not in ax.get_legend_handles_labels()[1] else "",
         )
-        ax.text(
-            row.release_date,
-            row.beta_p50 + 0.05,
-            row.agent,
-            fontsize=9,
-            rotation=30,
-            ha="left",
-        )
+        # ax.text(
+        #     row.release_date,
+        #     row.beta_p50 + 0.05,
+        #     row.agent,
+        #     fontsize=5,
+        #     rotation=-20,
+        #     ha="left",
+        # )
 
     # Trendline over time
     dates_numeric = summaries["release_date"].map(mdates.date2num).to_numpy()
@@ -354,24 +447,80 @@ def plot_horizon(
     ax.set_title("SWE-Bench beta difficulty at 50% success", fontsize=16)
     ax.set_ylabel("IRT β difficulty (higher = harder)", fontsize=13)
     ax.set_xlabel("Model release date", fontsize=13)
+
+    # Use a symmetrical log scale to keep both very large and very small betas readable.
+    beta_values = summaries["beta_p50"].to_numpy()
+    valid_beta = beta_values[~np.isnan(beta_values)]
+    if len(valid_beta):
+        beta_abs_max = float(np.max(np.abs(valid_beta)))
+        linthresh = max(0.1, 0.05 * beta_abs_max)
+        ax.set_yscale("symlog", linthresh=linthresh, linscale=0.7)
+        margin = 0.1 * (np.max(valid_beta) - np.min(valid_beta))
+        if np.isfinite(margin):
+            lower = np.min(valid_beta) - margin
+            upper = np.max(valid_beta) + margin
+            ax.set_ylim(lower, upper)
     ax.grid(True, linestyle="--", alpha=0.3)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
     fig.autofmt_xdate()
 
     handles, labels = ax.get_legend_handles_labels()
     unique = dict(zip(labels, handles))
-    ax.legend(unique.values(), unique.keys(), loc="upper left", frameon=False)
+    ax.legend(
+        unique.values(),
+        unique.keys(),
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        frameon=False,
+        fontsize=5,
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
-    fig.savefig(output_path, dpi=300)
+    fig.savefig(output_path, dpi=500)
     plt.close(fig)
 
 
 def main() -> None:
     args = parse_args()
+    
+    base_runs = pd.read_json(args.runs_file, lines=True)
+    base_runs.rename(columns={"alias": "agent"}, inplace=True)
+    base_cols = [
+        "task_id",
+        "human_minutes",
+        "equal_task_weight",
+        "invsqrt_task_weight",
+        "task_source",
+    ]
+    task_meta = base_runs[base_cols].drop_duplicates("task_id")
 
-    runs = pd.read_json(args.runs_file, lines=True)
+    # records: list[pd.DataFrame] = [base_runs]
+    records: list[pd.DataFrame] = []
+    if args.pyirt_file.exists():
+        with args.pyirt_file.open() as f:
+            pyirt_records: list[dict[str, object]] = []
+            for line in f:
+                entry = json.loads(line)
+                agent = entry["subject_id"]
+                for task_id, score in entry["responses"].items():
+                    pyirt_records.append(
+                        {
+                            "agent": agent,
+                            "task_id": task_id,
+                            "score_binarized": float(score),
+                        }
+                    )
+        pyirt_df = pd.DataFrame(pyirt_records)
+        pyirt_df = pyirt_df.merge(task_meta, on="task_id", how="left", validate="m:1")
+        missing = pyirt_df["human_minutes"].isna().sum()
+        if missing:
+            raise ValueError(
+                f"{missing} py-IRT rows missing task metadata; ensure task ids align"
+            )
+        records.append(pyirt_df)
+
+    runs = pd.concat(records, ignore_index=True)
     beta_df = pd.read_csv(args.beta_file).rename(columns={"Unnamed: 0": "task_id"})
     beta_df.rename(columns={"a": "alpha", "b": "beta"}, inplace=True)
     runs = runs.merge(beta_df[["task_id", "beta"]], on="task_id", how="left")
@@ -380,11 +529,20 @@ def main() -> None:
     if missing_beta:
         raise ValueError(f"{missing_beta} runs are missing beta parameters")
 
-    runs.rename(columns={"alias": "agent"}, inplace=True)
-    release_dates = load_release_dates(args.release_dates)
+    run_metadata = load_run_metadata(args.model_mapping)
 
+    release_dates = load_release_dates(args.release_dates)
+    if args.extra_release_dates.exists():
+        extra_dates = load_release_dates(args.extra_release_dates)
+        release_dates.update(extra_dates)
     summaries: list[AgentSummary] = []
     for agent, agent_df in runs.groupby("agent"):
+        metadata = run_metadata.get(agent)
+        display_name = metadata.display_name if metadata else agent
+        fallbacks: list[str] = []
+        if display_name != agent:
+            fallbacks.append(agent)
+        plot_flag = metadata.plot if metadata else True
         summary = fit_agent(
             agent,
             agent_df,
@@ -393,6 +551,9 @@ def main() -> None:
             args.weight_column,
             args.n_bootstrap,
             args.confidence,
+            display_name=display_name,
+            release_fallbacks=fallbacks,
+            plot_flag=plot_flag,
         )
         if summary:
             summaries.append(summary)
