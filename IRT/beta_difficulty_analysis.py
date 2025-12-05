@@ -101,6 +101,11 @@ def parse_args() -> argparse.Namespace:
         default=0.95,
         help="Confidence level for the beta difficulty intervals.",
     )
+    parser.add_argument(
+        "--linear-scale",
+        action="store_true",
+        help="Plot with a linear y-axis limited to [-5, 5] rather than symlog.",
+    )
     return parser.parse_args()
 
 
@@ -373,6 +378,7 @@ def fit_agent(
 def plot_horizon(
     summaries: pd.DataFrame,
     output_path: Path,
+    linear_scale: bool = False,
 ) -> None:
     # if "plot" in summaries.columns:
         # summaries = summaries[summaries["plot"]]
@@ -448,10 +454,13 @@ def plot_horizon(
     ax.set_ylabel("IRT β difficulty (higher = harder)", fontsize=13)
     ax.set_xlabel("Model release date", fontsize=13)
 
-    # Use a symmetrical log scale to keep both very large and very small betas readable.
     beta_values = summaries["beta_p50"].to_numpy()
     valid_beta = beta_values[~np.isnan(beta_values)]
-    if len(valid_beta):
+    if linear_scale:
+        ax.set_yscale("linear")
+        ax.set_ylim(-5, 5)
+    elif len(valid_beta):
+        # Use a symmetrical log scale to keep both very large and very small betas readable.
         beta_abs_max = float(np.max(np.abs(valid_beta)))
         linthresh = max(0.1, 0.05 * beta_abs_max)
         ax.set_yscale("symlog", linthresh=linthresh, linscale=0.7)
@@ -564,7 +573,7 @@ def main() -> None:
     args.output_table.parent.mkdir(parents=True, exist_ok=True)
     summary_df.to_csv(args.output_table, index=False)
 
-    plot_horizon(summary_df, args.output_plot)
+    plot_horizon(summary_df, args.output_plot, linear_scale=args.linear_scale)
     print(f"Wrote summary to {args.output_table}")
     print(f"Wrote figure to {args.output_plot}")
 
