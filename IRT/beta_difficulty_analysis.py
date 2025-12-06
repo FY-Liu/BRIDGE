@@ -19,6 +19,8 @@ import yaml
 from numpy.typing import NDArray
 from scipy import optimize as opt
 
+from model_mapping import load_model_mapping
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EVAL_ANALYSIS_DIR = REPO_ROOT / "eval-analysis-public"
 
@@ -40,7 +42,7 @@ def parse_args() -> argparse.Namespace:
         "--model-mapping",
         type=Path,
         default=REPO_ROOT / "IRT/data/model_run_mapping.csv",
-        help="CSV mapping verified run directories to human-friendly aliases.",
+        help="JSON/CSV mapping of model keys to aliases and plot flags.",
     )
     parser.add_argument(
         "--pyirt-file",
@@ -115,29 +117,14 @@ def load_release_dates(path: Path) -> dict[str, pd.Timestamp]:
 
 
 def load_run_metadata(path: Path) -> dict[str, RunAlias]:
-    """Return mapping from run id -> alias metadata."""
+    """Return mapping from model key -> alias metadata."""
     if not path.exists():
         return {}
 
-    df = pd.read_csv(path)
-    required_cols = {"run_id", "display_name", "plot"}
-    if not required_cols.issubset(df.columns):
-        missing = required_cols - set(df.columns)
-        raise ValueError(
-            f"Model mapping file {path} is missing required columns: {missing}"
-        )
-
+    entries = load_model_mapping(path)
     metadata: dict[str, RunAlias] = {}
-    for _, row in df.iterrows():
-        run_id = str(row["run_id"]).strip()
-        if not run_id:
-            continue
-        alias_raw = row.get("display_name", "")
-        alias = str(alias_raw).strip() if not pd.isna(alias_raw) else ""
-        alias = alias or run_id
-        plot_raw = str(row.get("plot", "T")).strip().upper()
-        plot_flag = plot_raw == "T"
-        metadata[run_id] = RunAlias(display_name=alias, plot=plot_flag)
+    for key, entry in entries.items():
+        metadata[key] = RunAlias(display_name=entry.alias, plot=entry.plot)
     return metadata
 
 
@@ -303,7 +290,6 @@ def bootstrap_quantile(
     return low, high
 
 
-@dataclass
 @dataclass
 class RunAlias:
     display_name: str
