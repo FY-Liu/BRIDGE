@@ -15,14 +15,12 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import yaml
 from numpy.typing import NDArray
 from scipy import optimize as opt
 
 from model_mapping import load_model_mapping
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EVAL_ANALYSIS_DIR = REPO_ROOT / "eval-analysis-public"
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,38 +33,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--runs-file",
         type=Path,
-        default=EVAL_ANALYSIS_DIR / "data/external/swe_bench_runs.jsonl",
-        help="Path to swe_bench_runs.jsonl from eval-analysis-public.",
+        action="append",
+        dest="runs_file",
+        help=(
+            "Path to a runs.jsonl-style file providing task metadata. "
+            "Can be specified multiple times."
+        ),
     )
     parser.add_argument(
         "--model-mapping",
         type=Path,
-        default=REPO_ROOT / "IRT/data/model_run_mapping.csv",
+        default=REPO_ROOT / "IRT/data/model_run_mapping.json",
         help="JSON/CSV mapping of model keys to aliases and plot flags.",
     )
     parser.add_argument(
         "--pyirt-file",
         type=Path,
-        default=REPO_ROOT / "IRT/data/swebench_all_pyirt.jsonl",
+        default=REPO_ROOT / "IRT/data/swebench_selected_plus_all_runs_pyirt.jsonl",
         help="JSONL with per-agent binary responses from py-irt fitting.",
     )
     parser.add_argument(
         "--beta-file",
         type=Path,
-        default=REPO_ROOT / "IRT/params/swebench_all_pyirt.csv",
+        default=REPO_ROOT / "IRT/params/swebench_selected_plus_all_runs_pyirt.csv",
         help="CSV with alpha/beta parameters indexed by SWE-Bench task id.",
-    )
-    parser.add_argument(
-        "--release-dates",
-        type=Path,
-        default=REPO_ROOT / "IRT/data/release_dates.yaml",
-        help="YAML file mapping model names to calendar release dates.",
-    )
-    parser.add_argument(
-        "--extra-release-dates",
-        type=Path,
-        default=REPO_ROOT / "IRT/data/extra_release_dates.yaml",
-        help="Optional YAML with additional release dates for new models.",
     )
     parser.add_argument(
         "--output-table",
@@ -108,12 +98,38 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Plot with a linear y-axis limited to [-5, 5] rather than symlog.",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not args.runs_file:
+        default_paths = [
+            REPO_ROOT / "IRT/data/all_runs.jsonl",
+            REPO_ROOT / "eval-analysis-public/data/external/swe_bench_runs.jsonl",
+        ]
+        args.runs_file = default_paths
+    return args
 
 
-def load_release_dates(path: Path) -> dict[str, pd.Timestamp]:
-    raw = yaml.safe_load(path.read_text())
-    return {agent: pd.to_datetime(date) for agent, date in raw["date"].items()}
+def load_task_metadata(
+    paths: Sequence[Path],
+    base_cols: Sequence[str],
+) -> pd.DataFrame:
+    frames: list[pd.DataFrame] = []
+    missing: list[Path] = []
+    for path in paths:
+        if not path.exists():
+            missing.append(path)
+            continue
+        data = pd.read_json(path, lines=True)
+        data = data.rename(columns={"alias": "agent"})
+        frames.append(data[list(base_cols)].drop_duplicates("task_id"))
+    if missing:
+        skipped = ", ".join(str(p) for p in missing)
+        print(f"Warning: skipped missing runs metadata files: {skipped}")
+    if not frames:
+        raise FileNotFoundError(
+            "No valid runs metadata files were provided; cannot continue."
+        )
+    combined = pd.concat(frames, ignore_index=True)
+    return combined.drop_duplicates("task_id", keep="first")
 
 
 def load_run_metadata(path: Path) -> dict[str, RunAlias]:
@@ -124,7 +140,17 @@ def load_run_metadata(path: Path) -> dict[str, RunAlias]:
     entries = load_model_mapping(path)
     metadata: dict[str, RunAlias] = {}
     for key, entry in entries.items():
-        metadata[key] = RunAlias(display_name=entry.alias, plot=entry.plot)
+        release_date: pd.Timestamp | None = None
+        if entry.release_date:
+            try:
+                release_date = pd.to_datetime(entry.release_date)
+            except (TypeError, ValueError):
+                release_date = pd.NaT
+        metadata[key] = RunAlias(
+            display_name=entry.alias,
+            plot=entry.plot,
+            release_date=release_date,
+        )
     return metadata
 
 
@@ -294,6 +320,7 @@ def bootstrap_quantile(
 class RunAlias:
     display_name: str
     plot: bool
+    release_date: pd.Timestamp | None = None
 
 
 @dataclass
@@ -479,8 +506,6 @@ def plot_horizon(
 def main() -> None:
     args = parse_args()
     
-    base_runs = pd.read_json(args.runs_file, lines=True)
-    base_runs.rename(columns={"alias": "agent"}, inplace=True)
     base_cols = [
         "task_id",
         "human_minutes",
@@ -488,7 +513,7 @@ def main() -> None:
         "invsqrt_task_weight",
         "task_source",
     ]
-    task_meta = base_runs[base_cols].drop_duplicates("task_id")
+    task_meta = load_task_metadata(args.runs_file, base_cols)
 
     # records: list[pd.DataFrame] = [base_runs]
     records: list[pd.DataFrame] = []
@@ -510,9 +535,19 @@ def main() -> None:
         pyirt_df = pyirt_df.merge(task_meta, on="task_id", how="left", validate="m:1")
         missing = pyirt_df["human_minutes"].isna().sum()
         if missing:
-            raise ValueError(
-                f"{missing} py-IRT rows missing task metadata; ensure task ids align"
+            print(
+                "Warning: "
+                f"{missing} py-IRT rows missing task metadata; using unit weights for those tasks"
             )
+        for column in ("equal_task_weight", "invsqrt_task_weight"):
+            if column not in pyirt_df.columns:
+                pyirt_df[column] = 1.0
+            else:
+                pyirt_df[column] = pyirt_df[column].fillna(1.0)
+        if args.weight_column not in pyirt_df.columns:
+            pyirt_df[args.weight_column] = 1.0
+        else:
+            pyirt_df[args.weight_column] = pyirt_df[args.weight_column].fillna(1.0)
         records.append(pyirt_df)
 
     runs = pd.concat(records, ignore_index=True)
@@ -525,11 +560,12 @@ def main() -> None:
         raise ValueError(f"{missing_beta} runs are missing beta parameters")
 
     run_metadata = load_run_metadata(args.model_mapping)
-
-    release_dates = load_release_dates(args.release_dates)
-    if args.extra_release_dates.exists():
-        extra_dates = load_release_dates(args.extra_release_dates)
-        release_dates.update(extra_dates)
+    release_dates: dict[str, pd.Timestamp] = {}
+    for key, meta in run_metadata.items():
+        if meta.release_date is None or pd.isna(meta.release_date):
+            continue
+        release_dates[key] = meta.release_date
+        release_dates[meta.display_name] = meta.release_date
     summaries: list[AgentSummary] = []
     for agent, agent_df in runs.groupby("agent"):
         metadata = run_metadata.get(agent)

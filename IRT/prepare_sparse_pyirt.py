@@ -97,6 +97,11 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Where to write the combined py-IRT JSONL file.",
     )
+    parser.add_argument(
+        "--print-subject-counts",
+        action="store_true",
+        help="Print how many responses each subject contributed.",
+    )
     return parser.parse_args()
 
 
@@ -236,6 +241,10 @@ def main() -> None:
         f"[prepare_sparse_pyirt] wrote {len(combined)} subjects and "
         f"{sum(len(v) for v in combined.values())} responses to {args.output}"
     )
+    if args.print_subject_counts:
+        print("[prepare_sparse_pyirt] per-subject response counts:")
+        for subject_id in sorted(combined):
+            print(f"  {subject_id}: {len(combined[subject_id])}")
 
 
 if __name__ == "__main__":

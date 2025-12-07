@@ -44,3 +44,11 @@ default CPU configuration and writes the parameters to
 Use the resulting CSV to analyze joint difficulty across the unified question
 set.  Re-run the `prepare_sparse_pyirt.py` step whenever you edit the mapping
 file or add new run logs.
+
+
+
+
+
+.venv/bin/python prepare_sparse_pyirt.py   --model-mapping /home/lfy/BRIDGE/IRT/data/model_run_mapping.json  --pyirt-input /home/lfy/BRIDGE/IRT/data/swebench_selected_pyirt.jsonl --runs-input data/all_runs.jsonl   --output data/swebench_selected_plus_all_runs_pyirt.jsonl --print-subject-counts
+
+.venv/bin/python /home/lfy/BRIDGE/IRT/fit_irt.py --input_path /home/lfy/BRIDGE/IRT/data/swebench_selected_plus_all_runs_pyirt.jsonl

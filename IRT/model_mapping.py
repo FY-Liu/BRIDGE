@@ -17,6 +17,7 @@ class ModelMappingEntry:
     plot: bool = True
     selected: bool = True
     run_ids: tuple[str, ...] = ()
+    release_date: str | None = None
 
 
 def _coerce_bool(value: Any, default: bool = True) -> bool:
@@ -32,6 +33,13 @@ def _coerce_bool(value: Any, default: bool = True) -> bool:
     if text in {"0", "f", "false", "n", "no"}:
         return False
     return default
+
+
+def _normalize_release_date(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _normalize_run_ids(values: Any) -> tuple[str, ...]:
@@ -63,6 +71,7 @@ def _normalize_dict_mapping(raw_mapping: dict[str, Any]) -> dict[str, ModelMappi
         spec = spec or {}
         alias = spec.get("alias") or spec.get("display_name") or key
         alias = str(alias).strip() or key
+        release_date = _normalize_release_date(spec.get("release_date"))
         normalized[key] = ModelMappingEntry(
             key=key,
             alias=alias,
@@ -71,6 +80,7 @@ def _normalize_dict_mapping(raw_mapping: dict[str, Any]) -> dict[str, ModelMappi
             run_ids=_normalize_run_ids(
                 spec.get("run_ids") or spec.get("runs") or spec.get("run_names")
             ),
+            release_date=release_date,
         )
     return normalized
 
@@ -112,6 +122,7 @@ def _load_mapping_from_csv(path: Path) -> dict[str, ModelMappingEntry]:
                     "plot": False,
                     "selected": True,
                     "run_ids": [],
+                    "release_date": None,
                 },
             )
             if spec["alias"] == model_key and alias != model_key:
@@ -119,6 +130,11 @@ def _load_mapping_from_csv(path: Path) -> dict[str, ModelMappingEntry]:
             spec["plot"] = spec["plot"] or plot_flag
             if run_id and run_id not in spec["run_ids"]:
                 spec["run_ids"].append(run_id)
+            release_date = _normalize_release_date(
+                row.get("release_date") or row.get("date")
+            )
+            if release_date:
+                spec["release_date"] = release_date
         normalized: dict[str, ModelMappingEntry] = {}
         for key, spec in temp.items():
             normalized[key] = ModelMappingEntry(
@@ -127,6 +143,7 @@ def _load_mapping_from_csv(path: Path) -> dict[str, ModelMappingEntry]:
                 plot=_coerce_bool(spec.get("plot"), True),
                 selected=_coerce_bool(spec.get("selected"), True),
                 run_ids=tuple(spec.get("run_ids") or ()),
+                release_date=_normalize_release_date(spec.get("release_date")),
             )
         return normalized
 

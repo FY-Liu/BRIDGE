@@ -2,12 +2,14 @@
   "claude-3-5-sonnet-20240620": {
     "alias": "Claude 3.5 Sonnet (Old)",
     "plot": true,
+    "release_date": "2024-06-20",
     "run_ids": [],
     "selected": true
   },
   "claude-3-5-sonnet-20241022": {
     "alias": "Claude 3.5 Sonnet (New)",
     "plot": true,
+    "release_date": "2024-10-22",
     "run_ids": [
       "20241029_OpenHands-CodeAct-2.1-sonnet-20241022"
     ],
@@ -16,6 +18,7 @@
   "claude-3-7-sonnet-20250219": {
     "alias": "Claude 3.7 Sonnet",
     "plot": true,
+    "release_date": "2025-02-24",
     "run_ids": [
       "20250415_openhands"
     ],
@@ -24,6 +27,7 @@
   "claude-3-opus": {
     "alias": "Claude 3 Opus",
     "plot": true,
+    "release_date": "2024-03-04",
     "run_ids": [
       "20240402_sweagent_claude3opus"
     ],
@@ -32,6 +36,7 @@
   "claude-4-opus-20250514": {
     "alias": "Claude 4 Opus",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250802_mini-v1.0.0_claude-4-opus-20250514"
     ],
@@ -40,6 +45,7 @@
   "claude-4-sonnet-20250514": {
     "alias": "Claude 4 Sonnet",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250720_Lingxi-v1.5_claude-4-sonnet-20250514"
     ],
@@ -48,6 +54,7 @@
   "claude-4.5-opus-medium": {
     "alias": "Claude 4.5 Opus medium (20251101)",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20251124_mini-v1.16.0_claude-opus-4-5-20251101"
     ],
@@ -56,6 +63,7 @@
   "claude-4.5-sonnet-250929": {
     "alias": "Claude 4.5 Sonnet",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250929_mini-v1.13.3_sonnet-4-5-20250929"
     ],
@@ -64,6 +72,7 @@
   "deepseek-v3.2-reasoner": {
     "alias": "Deepseek v3.2 reasoner",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20251201_mini-v1.17.1_deepseek-v3.2-reasoner"
     ],
@@ -72,6 +81,7 @@
   "entrpo-ekto-30b": {
     "alias": "EntroPO-EKTO-30B",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250901_entroPO_R2E_QwenCoder30BA3B"
     ],
@@ -80,6 +90,7 @@
   "frogboss-32b-2510": {
     "alias": "FrogBoss 32B",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20251110_frogboss-32b"
     ],
@@ -88,6 +99,7 @@
   "gemini-2.5-pro": {
     "alias": "gemini-2.5-pro",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250726_mini-v1.0.0_gemini-2.5-pro"
     ],
@@ -96,6 +108,7 @@
   "gemini-3-pro-preview": {
     "alias": "Gemini 3 Pro (preview)",
     "plot": true,
+    "release_date": "2025-11-18",
     "run_ids": [
       "20251120_livesweagent_gemini-3-pro-preview"
     ],
@@ -104,6 +117,7 @@
   "glm-4.5": {
     "alias": "GLM 4.5",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250728_zai_glm4-5"
     ],
@@ -112,6 +126,7 @@
   "glm-4.6": {
     "alias": "GLM 4.6",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250930_zai_glm4-6"
     ],
@@ -120,30 +135,35 @@
   "gpt-3": {
     "alias": "gpt-3",
     "plot": true,
+    "release_date": null,
     "run_ids": [],
     "selected": true
   },
   "gpt-3.5-turbo-instruct": {
     "alias": "GPT 3.5 Turbo Instruct",
     "plot": true,
+    "release_date": "2022-03-15",
     "run_ids": [],
     "selected": true
   },
   "gpt-4-0125": {
     "alias": "GPT-4 0125",
     "plot": true,
+    "release_date": "2024-01-25",
     "run_ids": [],
     "selected": true
   },
   "gpt-4-0314": {
     "alias": "GPT-4 0314",
     "plot": true,
+    "release_date": "2023-03-14",
     "run_ids": [],
     "selected": true
   },
   "gpt-4-1106": {
     "alias": "GPT-4 1106",
     "plot": true,
+    "release_date": "2023-11-06",
     "run_ids": [
       "20240402_sweagent_gpt4"
     ],
@@ -152,12 +172,14 @@
   "gpt-4-turbo": {
     "alias": "GPT 4 Turbo",
     "plot": true,
+    "release_date": "2024-04-09",
     "run_ids": [],
     "selected": true
   },
   "gpt-4.1-2025-04-14": {
     "alias": "GPT 4.1",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250720_mini-v0.0.0_gpt-4.1-mini-2025-04-14"
     ],
@@ -166,6 +188,7 @@
   "gpt-4o-2024-05-13": {
     "alias": "GPT 4o (2024-05-13)",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20241028_agentless-1.5_gpt4o"
     ],
@@ -174,6 +197,7 @@
   "gpt-4o-2024-11-20": {
     "alias": "GPT 4o (2024-11-20)",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250720_mini-v0.0.0-gpt-4o-2024-11-20"
     ],
@@ -182,6 +206,7 @@
   "gpt-5-2025-08-07": {
     "alias": "GPT 5",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20251015_Prometheus_v1.2.1_gpt5"
     ],
@@ -190,6 +215,7 @@
   "gpt-5-mini": {
     "alias": "GPT 5 Mini",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250807_mini-v1.7.0_gpt-5-mini"
     ],
@@ -198,6 +224,7 @@
   "gpt-5-nano": {
     "alias": "GPT 5 Nano",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250807_mini-v1.7.0_gpt-5-nano"
     ],
@@ -206,12 +233,14 @@
   "gpt2": {
     "alias": "GPT 2",
     "plot": true,
+    "release_date": "2019-02-14",
     "run_ids": [],
     "selected": true
   },
   "kimi-k2": {
     "alias": "Kimi K2",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20251014_Lingxi_kimi_k2"
     ],
@@ -220,6 +249,7 @@
   "minimaxm2": {
     "alias": "Minimax M2",
     "plot": true,
+    "release_date": "2025-10-23",
     "run_ids": [
       "minimaxm2"
     ],
@@ -228,18 +258,21 @@
   "o1": {
     "alias": "o1",
     "plot": true,
+    "release_date": "2024-12-05",
     "run_ids": [],
     "selected": true
   },
   "o1-preview": {
     "alias": "o1 preview",
     "plot": true,
+    "release_date": "2024-09-12",
     "run_ids": [],
     "selected": true
   },
   "o3-2025-04-16": {
     "alias": "o3",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250726_mini-v1.0.0_o3-2025-04-16"
     ],
@@ -248,6 +281,7 @@
   "o3-mini": {
     "alias": "o3 mini",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250214_agentless_lite_o3_mini"
     ],
@@ -256,6 +290,7 @@
   "o4-mini": {
     "alias": "o4 mini",
     "plot": true,
+    "release_date": null,
     "run_ids": [
       "20250503_patchpilot-v1.1-o4-mini"
     ],
@@ -264,6 +299,7 @@
   "qwen2.5-coder-32b-inst": {
     "alias": "Qwen 2.5 Coder 32B Instruct",
     "plot": true,
+    "release_date": "2024-11-15",
     "run_ids": [
       "20250803_mini-v1.0.0_qwen2-5-coder-32b-instruct"
     ],
@@ -272,6 +308,7 @@
   "qwen3-coder-30b-a3b-instruct": {
     "alias": "Qwen 3 Coder 30B Instruct",
     "plot": true,
+    "release_date": "2025-07-31",
     "run_ids": [
       "20250805_openhands-Qwen3-Coder-30B-A3B-Instruct"
     ],
@@ -280,6 +317,7 @@
   "qwen3-coder-480b-a25b-instruct": {
     "alias": "Qwen3 Coder 480B Instruct",
     "plot": true,
+    "release_date": "2025-07-23",
     "run_ids": [
       "20250805_openhands-Qwen3-Coder-480B-A35B-Instruct"
     ],
