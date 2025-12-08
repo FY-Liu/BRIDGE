@@ -23,13 +23,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--csv",
         type=Path,
-        default=Path("IRT/params/swebench_selected_plus_all_runs_pyirt.csv"),
+        default=Path("params/swebench_selected_plus_all_runs_pyirt.csv"),
         help="Path to the CSV to augment (default: %(default)s)",
     )
     parser.add_argument(
         "--jsonl",
         type=Path,
-        default=Path("IRT/data/human_minutes_by_task.jsonl"),
+        default=Path("data/human_minutes_by_task.jsonl"),
         help="Path to JSONL file containing {'task_id','human_minutes'} records "
         "(default: %(default)s)",
     )

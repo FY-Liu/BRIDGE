@@ -49,6 +49,10 @@ file or add new run logs.
 
 
 
-.venv/bin/python prepare_sparse_pyirt.py   --model-mapping /home/lfy/BRIDGE/IRT/data/model_run_mapping.json  --pyirt-input /home/lfy/BRIDGE/IRT/data/swebench_selected_pyirt.jsonl --runs-input data/all_runs.jsonl   --output data/swebench_selected_plus_all_runs_pyirt.jsonl --print-subject-counts
+.venv/bin/python prepare_sparse_pyirt.py   --model-mapping /home/lfy/BRIDGE/IRT/data/model_run_mapping.json  --pyirt-input /home/lfy/BRIDGE/IRT/data/swe_a_pyirt.jsonl --runs-input data/all_runs.jsonl   --output data/swe_metr_s_pyirt.jsonl --print-subject-counts
 
-.venv/bin/python /home/lfy/BRIDGE/IRT/fit_irt.py --input_path /home/lfy/BRIDGE/IRT/data/swebench_selected_plus_all_runs_pyirt.jsonl
+.venv/bin/python prepare_sparse_pyirt.py   --model-mapping /home/lfy/BRIDGE/IRT/data/model_run_mapping.json  --pyirt-input /home/lfy/BRIDGE/IRT/data/swe_a_pyirt.jsonl --runs-input data/all_runs.jsonl   --output data/swe_metr_a_pyirt.jsonl --print-subject-counts --keep-unmapped-pyirt-subjects
+
+.venv/bin/python /home/lfy/BRIDGE/IRT/fit_irt.py --input_path /home/lfy/BRIDGE/IRT/data/swe_metr_a_pyirt.jsonl
+
+.venv/bin/python merge_human_minutes.py --csv params/swe_metr_a_pyirt.csv

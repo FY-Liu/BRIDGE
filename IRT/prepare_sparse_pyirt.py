@@ -102,11 +102,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print how many responses each subject contributed.",
     )
+    parser.add_argument(
+        "--keep-unmapped-pyirt-subjects",
+        action="store_true",
+        help=(
+            "When reading py-IRT inputs, retain rows even if the subject is missing "
+            "from the mapping by falling back to the recorded subject_id."
+        ),
+    )
     return parser.parse_args()
 
 
 def load_pyirt_file(
-    path: Path, mapper: ModelMapper, sink: dict[str, dict[str, list[float]]]
+    path: Path,
+    mapper: ModelMapper,
+    sink: dict[str, dict[str, list[float]]],
+    keep_unmapped_subjects: bool,
 ):
     with path.open() as f:
         for line in f:
@@ -114,7 +125,7 @@ def load_pyirt_file(
             subject_id = entry["subject_id"]
             record = mapper.lookup_subject(subject_id)
             if record is None:
-                if mapper.restricts:
+                if mapper.restricts and not keep_unmapped_subjects:
                     continue
                 key = subject_id
             else:
@@ -221,7 +232,12 @@ def main() -> None:
     for path in args.pyirt_input:
         if not path.exists():
             raise FileNotFoundError(f"py-IRT input {path} does not exist")
-        load_pyirt_file(path, mapper, combined)
+        load_pyirt_file(
+            path,
+            mapper,
+            combined,
+            keep_unmapped_subjects=args.keep_unmapped_pyirt_subjects,
+        )
 
     rows_loaded = 0
     if args.runs_input:
