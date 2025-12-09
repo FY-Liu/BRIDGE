@@ -12,6 +12,8 @@ from typing import Iterable
 
 from model_mapping import ModelMappingEntry, load_model_mapping
 
+MLEBENCH_SCORE_TASKS = ("above_median", "any_medal", "valid_submission")
+
 
 class ModelMapper:
     """Wrap the curated model mapping and provide direct lookups."""
@@ -92,6 +94,24 @@ def parse_args() -> argparse.Namespace:
         help="Column to read from runs-input for binary correctness.",
     )
     parser.add_argument(
+        "--gdpval-input",
+        type=Path,
+        default=None,
+        help=(
+            "Normalized GDPVal JSONL file to include; defaults to data/"
+            "gdpval_normalized_results.jsonl."
+        ),
+    )
+    parser.add_argument(
+        "--mlebench-input",
+        type=Path,
+        default=None,
+        help=(
+            "Normalized MLEBench JSONL file to include; defaults to data/"
+            "mlebench_normalized_results.jsonl."
+        ),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         required=True,
@@ -141,6 +161,27 @@ def iter_runs(path: Path) -> Iterable[dict]:
             yield json.loads(line)
 
 
+def resolve_subject_key(
+    mapper: ModelMapper,
+    *,
+    run_id: str | None = None,
+    model_field: str | None = None,
+    alias: str | None = None,
+    allow_unmapped: bool = False,
+) -> tuple[str | None, bool]:
+    """Return a canonical subject key and whether the record was missing."""
+
+    canonical = mapper.lookup_run(run_id=run_id, model_field=model_field)
+    if canonical is None:
+        if mapper.restricts and not allow_unmapped:
+            return None, True
+        subject_key = str(model_field or run_id or alias or "").strip()
+        if not subject_key:
+            subject_key = "unknown"
+        return subject_key, False
+    return canonical.key, False
+
+
 def add_run_records(
     paths: list[Path],
     mapper: ModelMapper,
@@ -158,17 +199,15 @@ def add_run_records(
             model_field = record.get("model")
             if model_field == "human":
                 continue
-            canonical = mapper.lookup_run(run_id=run_id, model_field=model_field)
-            if canonical is None:
-                if mapper.restricts:
-                    missing_ids += 1
-                    print(model_field)
-                    continue
-                subject_key = str(model_field or run_id or alias or "").strip()
-                if not subject_key:
-                    subject_key = "unknown"
-            else:
-                subject_key = canonical.key
+            subject_key, missing = resolve_subject_key(
+                mapper, run_id=run_id, model_field=model_field, alias=alias
+            )
+            if missing:
+                missing_ids += 1
+                print(model_field)
+                continue
+            if subject_key is None:
+                continue
             score_val = record.get(score_column)
             if score_val is None:
                 continue
@@ -204,6 +243,92 @@ def add_run_records(
             file=sys.stderr,
         )
     return total_rows, missing_ids
+
+
+def add_gdpval_results(
+    path: Path,
+    mapper: ModelMapper,
+    sink: dict[str, dict[str, list[float]]],
+    *,
+    keep_unmapped_subjects: bool,
+) -> tuple[int, int]:
+    total_rows = 0
+    missing_ids = 0
+    if not path.exists():
+        return total_rows, missing_ids
+    for record in iter_runs(path):
+        total_rows += 1
+        subject_key, missing = resolve_subject_key(
+            mapper,
+            model_field=record.get("model"),
+            allow_unmapped=keep_unmapped_subjects,
+        )
+        if missing:
+            missing_ids += 1
+            continue
+        if subject_key is None:
+            continue
+        task_id = record.get("task_id")
+        if not task_id:
+            continue
+        score_val = record.get("score")
+        if score_val is None:
+            continue
+        try:
+            score = float(score_val)
+        except (TypeError, ValueError):
+            continue
+        score = 1.0 if score >= 0.5 else 0.0
+        responses = sink.setdefault(subject_key, {})
+        scores = responses.setdefault(task_id, [])
+        scores.append(score)
+    return total_rows, missing_ids
+
+
+def add_mlebench_results(
+    path: Path,
+    mapper: ModelMapper,
+    sink: dict[str, dict[str, list[float]]],
+    *,
+    keep_unmapped_subjects: bool,
+) -> tuple[int, int, int]:
+    total_rows = 0
+    missing_ids = 0
+    metrics_written = 0
+    if not path.exists():
+        return total_rows, missing_ids, metrics_written
+    for record in iter_runs(path):
+        total_rows += 1
+        subject_key, missing = resolve_subject_key(
+            mapper,
+            model_field=record.get("model"),
+            allow_unmapped=keep_unmapped_subjects,
+        )
+        if missing:
+            missing_ids += 1
+            continue
+        if subject_key is None:
+            continue
+        task_id = record.get("task_id")
+        if not task_id:
+            continue
+        score_block = record.get("score")
+        if not isinstance(score_block, dict):
+            continue
+        responses = sink.setdefault(subject_key, {})
+        for metric in MLEBENCH_SCORE_TASKS:
+            value = score_block.get(metric)
+            if value is None:
+                continue
+            try:
+                score = float(value)
+            except (TypeError, ValueError):
+                continue
+            metric_score = 1.0 if score >= 0.5 else 0.0
+            metric_task_id = f"{task_id}::{metric}"
+            responses.setdefault(metric_task_id, []).append(metric_score)
+            metrics_written += 1
+    return total_rows, missing_ids, metrics_written
 
 
 def write_output(path: Path, responses: dict[str, dict[str, list[float]]]):
@@ -251,6 +376,37 @@ def main() -> None:
             f"[prepare_sparse_pyirt] processed {rows_loaded} run rows "
             f"(missing ids: {missing})"
         )
+
+    data_dir = Path(__file__).with_name("data")
+
+    gdpval_path = args.gdpval_input or data_dir / "gdpval_normalized_results.jsonl"
+    if gdpval_path:
+        gdp_rows, gdp_missing = add_gdpval_results(
+            gdpval_path,
+            mapper,
+            combined,
+            keep_unmapped_subjects=args.keep_unmapped_pyirt_subjects,
+        )
+        if gdp_rows or gdp_missing:
+            print(
+                "[prepare_sparse_pyirt] processed "
+                f"{gdp_rows} GDPVal rows (missing ids: {gdp_missing})"
+            )
+
+    mlebench_path = args.mlebench_input or data_dir / "mlebench_normalized_results.jsonl"
+    if mlebench_path:
+        mle_rows, mle_missing, mle_metrics = add_mlebench_results(
+            mlebench_path,
+            mapper,
+            combined,
+            keep_unmapped_subjects=args.keep_unmapped_pyirt_subjects,
+        )
+        if mle_rows or mle_missing or mle_metrics:
+            print(
+                "[prepare_sparse_pyirt] processed "
+                f"{mle_rows} MLEBench rows across {mle_metrics} metric tasks "
+                f"(missing ids: {mle_missing})"
+            )
 
     write_output(args.output, combined)
     print(

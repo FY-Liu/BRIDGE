@@ -77,6 +77,13 @@ def main():
     irt_model = pd.DataFrame({"a": discriminations, "b": difficulties}, index=item_ids)
     irt_model.to_csv(out_csv)
 
+    # Map learned abilities back to each subject
+    subject_ids = list(trainer.best_params["subject_ids"].values())
+    abilities = list(trainer.best_params["ability"])
+    abilities_df = pd.DataFrame({"subject_id": subject_ids, "ability": abilities})
+    abilities_out_csv = params_dir / f"{input_path.stem}_abilities.csv"
+    abilities_df.to_csv(abilities_out_csv, index=False)
+
 
 if __name__ == "__main__":
     main()

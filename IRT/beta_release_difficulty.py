@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Plot release date vs SWE-Bench beta difficulty using only py-IRT outputs."""
+"""Plot release dates vs. beta difficulty using the combined py-IRT outputs."""
 
 from __future__ import annotations
 
 import argparse
 import json
 from dataclasses import dataclass
+from itertools import cycle
 from pathlib import Path
 from typing import Iterable
 
@@ -18,8 +19,8 @@ from scipy import optimize as opt
 from model_mapping import load_model_mapping
 
 REPO_ROOT = Path(__file__).resolve().parent
-DEFAULT_RESPONSES = REPO_ROOT / "data/swebench_selected_plus_all_runs_pyirt.jsonl"
-DEFAULT_BETA = REPO_ROOT / "params/swebench_selected_plus_all_runs_pyirt.csv"
+DEFAULT_RESPONSES = REPO_ROOT / "data/all_a_pyirt.jsonl"
+DEFAULT_BETA = REPO_ROOT / "params/all_a_pyirt.csv"
 DEFAULT_MAPPING = REPO_ROOT / "data/model_run_mapping.json"
 DEFAULT_TABLE = REPO_ROOT / "analysis/beta_release_difficulty.csv"
 DEFAULT_PLOT = REPO_ROOT / "analysis/beta_release_difficulty.png"
@@ -277,12 +278,17 @@ def plot_release_curve(
     valid = valid.sort_values("release_date")
 
     fig, ax = plt.subplots(figsize=(11, 7))
-    colors = {
-        "claude": "#8000FF",
-        "gpt": "#0062FF",
-        "o": "#0062FF",
-        "gemini": "#2E8B57",
-        "qwen": "#FF00E6",
+    color_cycle = cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
+    label_colors = {
+        label: next(color_cycle) for label in sorted(valid["label"].unique())
+    }
+    markers = {
+        "claude": "o",
+        "gpt": "^",
+        "o": "^",
+        "gemini": "s",
+        "qwen": "D",
+        "default": "P",
     }
 
     used_labels: set[str] = set()
@@ -291,16 +297,17 @@ def plot_release_curve(
         lower = row["beta_p50"] - row["beta_low"]
         upper = row["beta_high"] - row["beta_p50"]
         vendor = next(
-            (key for key in colors if key in name.lower()),
+            (key for key in markers if key != "default" and key in name.lower()),
             None,
         )
-        color = colors.get(vendor, "#555555")
+        color = label_colors.get(name, "#555555")
+        marker = markers.get(vendor, markers["default"])
         label = name if name not in used_labels else ""
         ax.errorbar(
             row["release_date"],
             row["beta_p50"],
             yerr=np.array([[lower], [upper]]),
-            fmt="o",
+            fmt=marker,
             color=color,
             ecolor="#444444",
             elinewidth=1,
