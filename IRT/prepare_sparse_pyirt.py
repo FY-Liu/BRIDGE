@@ -112,6 +112,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--cybench-input",
+        type=Path,
+        default=None,
+        help=(
+            "Normalized Cybench JSONL file to include; defaults to data/"
+            "cybench_normalized_results.jsonl."
+        ),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         required=True,
@@ -331,6 +340,53 @@ def add_mlebench_results(
     return total_rows, missing_ids, metrics_written
 
 
+def add_cybench_results(
+    path: Path,
+    mapper: ModelMapper,
+    sink: dict[str, dict[str, list[float]]],
+    *,
+    keep_unmapped_subjects: bool,
+) -> tuple[int, int]:
+    """Add Cybench results from normalized JSONL file.
+
+    This function processes Cybench CTF challenge results, where each task
+    represents a cybersecurity challenge with a binary pass/fail outcome.
+    """
+    total_rows = 0
+    missing_ids = 0
+    if not path.exists():
+        return total_rows, missing_ids
+    for record in iter_runs(path):
+        total_rows += 1
+        subject_key, missing = resolve_subject_key(
+            mapper,
+            run_id=record.get("run_id"),
+            model_field=record.get("model"),
+            allow_unmapped=keep_unmapped_subjects,
+        )
+        if missing:
+            missing_ids += 1
+            continue
+        if subject_key is None:
+            continue
+        task_id = record.get("task_id")
+        if not task_id:
+            continue
+        # Cybench uses score_binarized for binary outcomes
+        score_val = record.get("score_binarized")
+        if score_val is None:
+            score_val = record.get("score_cont", 0.0)
+        try:
+            score = float(score_val)
+        except (TypeError, ValueError):
+            continue
+        score = 1.0 if score >= 0.5 else 0.0
+        responses = sink.setdefault(subject_key, {})
+        scores = responses.setdefault(task_id, [])
+        scores.append(score)
+    return total_rows, missing_ids
+
+
 def write_output(path: Path, responses: dict[str, dict[str, list[float]]]):
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
@@ -406,6 +462,20 @@ def main() -> None:
                 "[prepare_sparse_pyirt] processed "
                 f"{mle_rows} MLEBench rows across {mle_metrics} metric tasks "
                 f"(missing ids: {mle_missing})"
+            )
+
+    cybench_path = args.cybench_input or data_dir / "cybench_normalized_results.jsonl"
+    if cybench_path:
+        cyber_rows, cyber_missing = add_cybench_results(
+            cybench_path,
+            mapper,
+            combined,
+            keep_unmapped_subjects=args.keep_unmapped_pyirt_subjects,
+        )
+        if cyber_rows or cyber_missing:
+            print(
+                "[prepare_sparse_pyirt] processed "
+                f"{cyber_rows} Cybench rows (missing ids: {cyber_missing})"
             )
 
     write_output(args.output, combined)

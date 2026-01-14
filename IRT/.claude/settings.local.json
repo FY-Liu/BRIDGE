@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(wc:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:cybench.github.io)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:openreview.net)",
+      "Bash(git clone:*)",
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(unzip:*)",
+      "Bash(head:*)",
+      "Bash(pip3 install:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/bin/jupyter nbconvert:*)",
+      "Bash(.venv/bin/pip:*)"
+    ]
+  }
+}
