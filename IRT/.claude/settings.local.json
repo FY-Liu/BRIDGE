@@ -17,7 +17,9 @@
       "Bash(pip3 install:*)",
       "Bash(.venv/bin/python:*)",
       "Bash(.venv/bin/jupyter nbconvert:*)",
-      "Bash(.venv/bin/pip:*)"
+      "Bash(.venv/bin/pip:*)",
+      "Bash(./run_pipeline.sh)",
+      "Bash(./run_pipeline.sh:*)"
     ]
   }
 }

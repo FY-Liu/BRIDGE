@@ -2,7 +2,23 @@
 
 ## Summary
 
-The Cybench task time prediction analysis has been successfully completed using the METR-only linear regression model to predict First Solve Times (FST) for 171 cybersecurity CTF challenges.
+The Cybench task time prediction analysis uses the METR-only linear regression model to predict First Solve Times (FST) for **40 cybersecurity CTF challenges** that have actual model evaluation data.
+
+## Data Sources
+
+### Human Time Annotations
+- **Source**: Cybench GitHub repository (`analytics/CTF fastest solve times.json`)
+- **Format**: First Solve Time (FST) - fastest time any human competitor solved each CTF challenge
+- **URL**: https://github.com/andyzorigin/cybench
+
+### Model Evaluations
+- **Source**: `data/data_by_challenges/` (40 task directories with 690 log files)
+- **Models**: 11 models with actual evaluations:
+  - claude-3-opus, claude-3.5-sonnet, gemini-1.5-pro, gpt-4o
+  - llama-3-70b-chat, llama-3.1-405b-instruct, llama-3.1-70b-instruct-turbo
+  - mistral-large-2407, mixtral-8x22b-instruct, o1-preview, qwen2-72b-instruct
+- **Total Records**: 360 (task, model) evaluation pairs
+- **Success Rate**: 25/360 = 6.9%
 
 ## Methodology
 
@@ -10,9 +26,8 @@ The Cybench task time prediction analysis has been successfully completed using 
   - Formula: `human_time = exp(slope × b + intercept)`
   - Parameters: slope = 0.887408, intercept = 2.877427
 
-- **Test Set**: 171 Cybench tasks (held-out, not used in model fitting)
-  - All tasks have both IRT difficulty estimates (b) and FST annotations
-  - FST range: 2.0 to 2,769.9 minutes
+- **Test Set**: 40 Cybench tasks with actual model evaluations
+  - All 40 tasks have both IRT difficulty estimates (b) and FST annotations
 
 ## Prediction Performance
 
@@ -20,124 +35,65 @@ The Cybench task time prediction analysis has been successfully completed using 
 
 | Metric | Value |
 |--------|-------|
-| **R² (log scale)** | **-0.074** |
-| **MAE (log scale)** | **1.295** |
-| **Median error ratio** | **0.79x** |
-| **Predictions within 2x** | **33.9%** |
+| **R² (log scale)** | **0.236** |
+| **MAE (log scale)** | **1.045** |
+| **Median error ratio** | **1.66x** |
+| **Predictions within 2x** | **37.5%** |
 
 ### Interpretation
 
-1. **Negative R²**: The model performs worse than simply using the mean FST value
-   - Indicates the METR-derived relationship does NOT generalize to Cybench tasks
+1. **Positive R²**: The model explains 23.6% of variance in Cybench FST
+   - Better than random, but moderate fit
+   - METR-derived relationship partially transfers to Cybench
 
-2. **Large MAE**: Log-scale error of 1.295 corresponds to approximately 3.6x multiplicative error
-   - Predictions are consistently off by more than 3x on average
+2. **MAE of 1.045**: Log-scale error corresponds to ~2.8x multiplicative error
+   - Reasonable given cross-domain prediction
 
-3. **Systematic Bias**: Median error ratio of 0.79x shows the model tends to underpredict
-   - Model predicts shorter solve times than actual FST
+3. **Median Error Ratio 1.66x**: Model tends to overpredict solve times
+   - Cybench tasks are solved faster than predicted by IRT difficulty
 
-4. **Poor Precision**: Only 33.9% within 2x error band
-   - Most predictions fall outside reasonable accuracy bounds
+4. **37.5% within 2x**: About a third of predictions are reasonably accurate
 
-## Visualization Analysis
+## Model Success Rates by Model
 
-The generated plots (`plots/cybench_prediction_vs_actual_fst.pdf/png`) reveal:
-
-### Left Panel: Predicted vs Actual FST
-- **Clustering**: Predictions cluster around 50-100 minutes regardless of actual FST
-- **Flat Prediction**: Model fails to capture the wide range of actual solve times
-- **Scatter**: Most points fall far from the perfect prediction line
-
-### Right Panel: Residual Plot by Difficulty
-- **Color Gradient**: Shows relationship between task difficulty (b) and prediction error
-  - Green (easy tasks, b < 0): Tend to have negative errors (underprediction)
-  - Red (hard tasks, b > 0): More variable errors
-
-- **Systematic Pattern**: Clear trend in residuals suggests model misspecification
-  - Not random scatter expected from a good model
-  - Indicates missing variables or wrong functional form
-
-## Key Findings
-
-### 1. Domain-Specific Relationships
-
-The relationship between IRT difficulty and human solve time appears **domain-specific**:
-
-- **METR Tasks**: Linear relationship (R² ≈ 0.3-0.4 from previous analysis)
-- **Cybench Tasks**: No linear relationship (R² = -0.074)
-
-This suggests that:
-- Autonomous task completion (METR) has different time dynamics than CTF challenges
-- Cybersecurity skills may affect solve time differently than general task-solving ability
-
-### 2. Cybench Task Characteristics
-
-Possible explanations for poor generalization:
-
-1. **Different Skill Profiles**:
-   - CTF challenges require specialized security knowledge
-   - METR tasks require general autonomous reasoning
-   - IRT difficulty may capture different aspects of task complexity
-
-2. **Different Time Distributions**:
-   - CTF challenges may have "aha moments" that don't scale with difficulty
-   - Experts solve both easy and hard CTF tasks relatively quickly
-   - METR tasks may have more predictable time scaling
-
-3. **Competition Context**:
-   - FST represents fastest solver in competition (top expert performance)
-   - METR times may represent more typical agent performance
-   - Different measurement contexts lead to different time relationships
-
-### 3. Implications for BRIDGE Framework
-
-- **Benchmark Diversity**: Confirms that Cybench adds distinct characteristics to BRIDGE
-- **Model Limitations**: Single linear model cannot predict time across all task types
-- **Need for Domain Models**: May require separate time-prediction models per benchmark
+| Model | Success Rate |
+|-------|-------------|
+| claude-3.5-sonnet | 5/40 (12.5%) |
+| claude-3-opus | 4/40 (10.0%) |
+| o1-preview | 4/40 (10.0%) |
+| gpt-4o | 3/40 (7.5%) |
+| llama-3.1-405b-instruct | 3/40 (7.5%) |
+| gemini-1.5-pro | 2/40 (5.0%) |
+| mixtral-8x22b-instruct | 2/40 (5.0%) |
+| llama-3-70b-chat | 1/40 (2.5%) |
+| llama-3.1-70b-instruct-turbo | 1/38 (2.6%) |
 
 ## Files Generated
 
-1. **`plots/cybench_prediction_vs_actual_fst.pdf`**
-   - High-resolution visualization for publication
+1. **`data/cybench_normalized_results.jsonl`** - 360 evaluation records (40 tasks × ~9 models)
+2. **`data/cybench_human_minutes_by_task.jsonl`** - 40 tasks with FST data
+3. **`data/all_a_pyirt.jsonl`** - Combined IRT data (1044 tasks total)
+4. **`params/all_a_pyirt.csv`** - IRT parameters with human_minutes (710 tasks have FST)
+5. **`plots/cybench_prediction_vs_actual_fst.pdf/png`** - Visualization
 
-2. **`plots/cybench_prediction_vs_actual_fst.png`**
-   - Web-friendly format for quick viewing
+## IRT Pipeline Summary
 
-3. **`run_cybench_analysis.py`**
-   - Standalone script for reproducing the analysis
-
-## Next Steps
-
-Potential follow-up analyses:
-
-1. **Fit Cybench-Specific Model**:
-   - Use Cybench data to fit a separate regression model
-   - Compare slope/intercept to METR model
-   - Test if relationship is simply different parameters vs fundamentally different
-
-2. **Combined Model**:
-   - Fit model on METR + Cybench together
-   - Add benchmark-type indicator variable
-   - Test for interaction effects
-
-3. **Task Feature Analysis**:
-   - Investigate what features of Cybench tasks drive FST
-   - CTF category (crypto, reverse, pwn, web, etc.)
-   - Competition difficulty ratings
-   - Number of subtasks
-
-4. **Cross-Benchmark Comparison**:
-   - Test METR model on SWE-Bench tasks
-   - Check if poor generalization is specific to Cybench
-   - Identify which benchmarks have similar time relationships
+| Dataset | Tasks | Models | Total Responses |
+|---------|-------|--------|-----------------|
+| SWE-Bench | 500 | ~125 | ~62,500 |
+| MLE-Bench | 114 | ~13 | ~1,482 |
+| GDPVal | 220 | 16 | 3,520 |
+| METR | 170 | ~8 | ~19,000 |
+| **Cybench** | **40** | **11** | **360** |
+| **Total** | **1,044** | **186** | **86,689** |
 
 ## Conclusion
 
-The analysis reveals that **the METR-only linear model does not generalize to Cybench tasks**, with negative R² and only 33.9% of predictions within 2x of actual FST. This finding:
+Using only the 40 Cybench tasks with actual model evaluation data (instead of all 171 FST tasks):
 
-- ✅ Validates the importance of including Cybench in BRIDGE
-- ✅ Shows that different task types have different time-difficulty relationships
-- ✅ Suggests need for domain-specific or multi-domain prediction models
-- ⚠️ Indicates caution when extrapolating findings across benchmark types
+- **R² = 0.236**: The METR-derived linear model partially generalizes to Cybench
+- **37.5% within 2x**: Moderate prediction accuracy for cross-domain tasks
+- **1.66x median error ratio**: Model tends to overpredict solve times
+- The 40 tasks with evaluations show better model fit than the full 171-task set, suggesting these selected tasks have characteristics more aligned with METR
 
-The poor prediction performance is actually a **positive finding** for the BRIDGE framework, as it demonstrates that Cybench captures fundamentally different task characteristics than existing benchmarks, making it a valuable addition for comprehensive AI capability assessment.
+This validates that Cybench adds meaningful data to the BRIDGE framework while showing that domain-specific calibration may improve predictions.

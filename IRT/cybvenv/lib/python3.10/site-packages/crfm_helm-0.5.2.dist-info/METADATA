@@ -1,0 +1,381 @@
+Metadata-Version: 2.1
+Name: crfm-helm
+Version: 0.5.2
+Summary: Benchmark for language models
+Home-page: https://github.com/stanford-crfm/helm
+Author: Stanford CRFM
+Author-email: contact-crfm@stanford.edu
+License: Apache License 2.0
+Keywords: language models benchmarking
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.8
+Classifier: License :: OSI Approved :: Apache Software License
+Requires-Python: <3.11,>=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: cattrs ~=22.2
+Requires-Dist: dacite ~=1.6
+Requires-Dist: importlib-resources ~=5.10
+Requires-Dist: Mako ~=1.2
+Requires-Dist: numpy ~=1.23
+Requires-Dist: pyhocon ~=0.3.59
+Requires-Dist: retrying ~=1.3
+Requires-Dist: spacy ~=3.5
+Requires-Dist: tqdm ~=4.64
+Requires-Dist: zstandard ~=0.18.0
+Requires-Dist: sqlitedict ~=1.7
+Requires-Dist: bottle ~=0.12.23
+Requires-Dist: datasets ~=2.17
+Requires-Dist: pyarrow >=11.0.0
+Requires-Dist: pyarrow-hotfix ~=0.6
+Requires-Dist: nltk ~=3.7
+Requires-Dist: pyext ~=0.7
+Requires-Dist: rouge-score ~=0.1.2
+Requires-Dist: scipy ~=1.10
+Requires-Dist: uncertainty-calibration ~=0.1.4
+Requires-Dist: scikit-learn ~=1.1
+Requires-Dist: transformers ~=4.40
+Requires-Dist: torch <3.0.0,>=1.13.1
+Requires-Dist: torchvision <3.0.0,>=0.14.1
+Requires-Dist: google-api-python-client ~=2.64
+Provides-Extra: aleph-alpha
+Requires-Dist: aleph-alpha-client ~=2.14.0 ; extra == 'aleph-alpha'
+Requires-Dist: tokenizers >=0.13.3 ; extra == 'aleph-alpha'
+Provides-Extra: all
+Requires-Dist: crfm-helm[proxy-server] ; extra == 'all'
+Requires-Dist: crfm-helm[human-evaluation] ; extra == 'all'
+Requires-Dist: crfm-helm[scenarios] ; extra == 'all'
+Requires-Dist: crfm-helm[metrics] ; extra == 'all'
+Requires-Dist: crfm-helm[plots] ; extra == 'all'
+Requires-Dist: crfm-helm[decodingtrust] ; extra == 'all'
+Requires-Dist: crfm-helm[slurm] ; extra == 'all'
+Requires-Dist: crfm-helm[cleva] ; extra == 'all'
+Requires-Dist: crfm-helm[images] ; extra == 'all'
+Requires-Dist: crfm-helm[models] ; extra == 'all'
+Requires-Dist: crfm-helm[mongo] ; extra == 'all'
+Requires-Dist: crfm-helm[heim] ; extra == 'all'
+Requires-Dist: crfm-helm[vlm] ; extra == 'all'
+Provides-Extra: allenai
+Requires-Dist: ai2-olmo ~=0.2 ; extra == 'allenai'
+Provides-Extra: amazon
+Requires-Dist: boto3 ~=1.28.57 ; extra == 'amazon'
+Requires-Dist: awscli ~=1.29.57 ; extra == 'amazon'
+Requires-Dist: botocore ~=1.31.57 ; extra == 'amazon'
+Provides-Extra: anthropic
+Requires-Dist: anthropic ~=0.17 ; extra == 'anthropic'
+Requires-Dist: websocket-client ~=1.3.2 ; extra == 'anthropic'
+Provides-Extra: cleva
+Requires-Dist: unidecode ==1.3.6 ; extra == 'cleva'
+Requires-Dist: pypinyin ==0.49.0 ; extra == 'cleva'
+Requires-Dist: jieba ==0.42.1 ; extra == 'cleva'
+Requires-Dist: opencc ==1.1.6 ; extra == 'cleva'
+Requires-Dist: langdetect ==1.0.9 ; extra == 'cleva'
+Provides-Extra: cohere
+Requires-Dist: cohere ~=5.3 ; extra == 'cohere'
+Provides-Extra: decodingtrust
+Requires-Dist: fairlearn ~=0.9.0 ; extra == 'decodingtrust'
+Provides-Extra: dev
+Requires-Dist: pytest ~=7.2.0 ; extra == 'dev'
+Requires-Dist: pre-commit ~=2.20.0 ; extra == 'dev'
+Requires-Dist: black ==24.3.0 ; extra == 'dev'
+Requires-Dist: mypy ==1.5.1 ; extra == 'dev'
+Requires-Dist: flake8 ==5.0.4 ; extra == 'dev'
+Provides-Extra: google
+Requires-Dist: google-cloud-aiplatform ~=1.48 ; extra == 'google'
+Provides-Extra: heim
+Requires-Dist: gdown ~=4.4.0 ; extra == 'heim'
+Requires-Dist: diffusers ~=0.24.0 ; extra == 'heim'
+Requires-Dist: jax ~=0.4.13 ; extra == 'heim'
+Requires-Dist: jaxlib ~=0.4.13 ; extra == 'heim'
+Requires-Dist: crfm-helm[openai] ; extra == 'heim'
+Requires-Dist: einops ~=0.7.0 ; extra == 'heim'
+Requires-Dist: omegaconf ~=2.3.0 ; extra == 'heim'
+Requires-Dist: pytorch-lightning ~=2.0.5 ; extra == 'heim'
+Requires-Dist: flax ~=0.6.11 ; extra == 'heim'
+Requires-Dist: ftfy ~=6.1.1 ; extra == 'heim'
+Requires-Dist: Unidecode ~=1.3.6 ; extra == 'heim'
+Requires-Dist: wandb ~=0.13.11 ; extra == 'heim'
+Requires-Dist: google-cloud-translate ~=3.11.2 ; extra == 'heim'
+Requires-Dist: autokeras ~=1.0.20 ; extra == 'heim'
+Requires-Dist: clip-anytorch ~=2.5.0 ; extra == 'heim'
+Requires-Dist: google-cloud-storage ~=2.9.0 ; extra == 'heim'
+Requires-Dist: lpips ~=0.1.4 ; extra == 'heim'
+Requires-Dist: multilingual-clip ~=1.0.10 ; extra == 'heim'
+Requires-Dist: NudeNet ~=2.0.9 ; extra == 'heim'
+Requires-Dist: opencv-python ~=4.7.0.68 ; extra == 'heim'
+Requires-Dist: pytorch-fid ~=0.3.0 ; extra == 'heim'
+Requires-Dist: tensorflow ~=2.11.1 ; extra == 'heim'
+Requires-Dist: timm ~=0.6.12 ; extra == 'heim'
+Requires-Dist: torch-fidelity ~=0.3.0 ; extra == 'heim'
+Requires-Dist: torchmetrics ~=0.11.1 ; extra == 'heim'
+Requires-Dist: crfm-helm[images] ; extra == 'heim'
+Provides-Extra: human-evaluation
+Requires-Dist: scaleapi ~=2.13.0 ; extra == 'human-evaluation'
+Requires-Dist: surge-api ~=1.1.0 ; extra == 'human-evaluation'
+Provides-Extra: image2structure
+Requires-Dist: crfm-helm[images] ; extra == 'image2structure'
+Requires-Dist: latex ~=0.7.0 ; extra == 'image2structure'
+Requires-Dist: pdf2image ~=1.16.3 ; extra == 'image2structure'
+Requires-Dist: selenium ~=4.17.2 ; extra == 'image2structure'
+Requires-Dist: html2text ~=2024.2.26 ; extra == 'image2structure'
+Requires-Dist: opencv-python ~=4.7.0.68 ; extra == 'image2structure'
+Requires-Dist: lpips ~=0.1.4 ; extra == 'image2structure'
+Requires-Dist: imagehash ~=4.3.1 ; extra == 'image2structure'
+Provides-Extra: images
+Requires-Dist: accelerate ~=0.25.0 ; extra == 'images'
+Requires-Dist: pillow ~=10.2 ; extra == 'images'
+Provides-Extra: metrics
+Requires-Dist: numba ~=0.56.4 ; extra == 'metrics'
+Requires-Dist: pytrec-eval ==0.5 ; extra == 'metrics'
+Requires-Dist: sacrebleu ~=2.2.1 ; extra == 'metrics'
+Provides-Extra: mistral
+Requires-Dist: mistralai ~=0.0.11 ; extra == 'mistral'
+Provides-Extra: models
+Requires-Dist: crfm-helm[aleph-alpha] ; extra == 'models'
+Requires-Dist: crfm-helm[allenai] ; extra == 'models'
+Requires-Dist: crfm-helm[amazon] ; extra == 'models'
+Requires-Dist: crfm-helm[anthropic] ; extra == 'models'
+Requires-Dist: crfm-helm[cohere] ; extra == 'models'
+Requires-Dist: crfm-helm[google] ; extra == 'models'
+Requires-Dist: crfm-helm[mistral] ; extra == 'models'
+Requires-Dist: crfm-helm[openai] ; extra == 'models'
+Requires-Dist: crfm-helm[reka] ; extra == 'models'
+Requires-Dist: crfm-helm[together] ; extra == 'models'
+Requires-Dist: crfm-helm[tsinghua] ; extra == 'models'
+Requires-Dist: crfm-helm[yandex] ; extra == 'models'
+Requires-Dist: crfm-helm[openvino] ; extra == 'models'
+Provides-Extra: mongo
+Requires-Dist: pymongo ~=4.2 ; extra == 'mongo'
+Provides-Extra: openai
+Requires-Dist: openai ~=1.0 ; extra == 'openai'
+Requires-Dist: tiktoken ~=0.7 ; extra == 'openai'
+Requires-Dist: pydantic ~=2.0 ; extra == 'openai'
+Provides-Extra: openvino
+Requires-Dist: optimum[openvino] ~=1.19 ; extra == 'openvino'
+Provides-Extra: plots
+Requires-Dist: colorcet ~=3.0.1 ; extra == 'plots'
+Requires-Dist: matplotlib ~=3.6.0 ; extra == 'plots'
+Requires-Dist: seaborn ~=0.11.0 ; extra == 'plots'
+Provides-Extra: proxy-server
+Requires-Dist: gunicorn ~=20.1.0 ; extra == 'proxy-server'
+Provides-Extra: reka
+Requires-Dist: reka-api ~=2.0.0 ; extra == 'reka'
+Provides-Extra: scenarios
+Requires-Dist: gdown ~=4.4.0 ; extra == 'scenarios'
+Requires-Dist: sympy ~=1.11.1 ; extra == 'scenarios'
+Requires-Dist: xlrd ~=2.0.1 ; extra == 'scenarios'
+Provides-Extra: slurm
+Requires-Dist: simple-slurm ~=0.2.6 ; extra == 'slurm'
+Provides-Extra: summarization
+Requires-Dist: summ-eval ~=0.892 ; extra == 'summarization'
+Provides-Extra: together
+Requires-Dist: together ~=1.1 ; extra == 'together'
+Provides-Extra: tsinghua
+Requires-Dist: icetk ~=0.0.4 ; extra == 'tsinghua'
+Provides-Extra: unitxt
+Requires-Dist: evaluate ~=0.4.1 ; extra == 'unitxt'
+Provides-Extra: vlm
+Requires-Dist: crfm-helm[openai] ; extra == 'vlm'
+Requires-Dist: einops ~=0.7.0 ; extra == 'vlm'
+Requires-Dist: einops-exts ~=0.0.4 ; extra == 'vlm'
+Requires-Dist: open-clip-torch ~=2.24.0 ; extra == 'vlm'
+Requires-Dist: torch ~=2.1.2 ; extra == 'vlm'
+Requires-Dist: transformers-stream-generator ~=0.0.4 ; extra == 'vlm'
+Requires-Dist: scipy ~=1.10 ; extra == 'vlm'
+Requires-Dist: torchvision <3.0.0,>=0.14.1 ; extra == 'vlm'
+Requires-Dist: crfm-helm[reka] ; extra == 'vlm'
+Requires-Dist: crfm-helm[images] ; extra == 'vlm'
+Requires-Dist: crfm-helm[image2structure] ; extra == 'vlm'
+Requires-Dist: pycocoevalcap ~=1.2 ; extra == 'vlm'
+Provides-Extra: yandex
+Requires-Dist: sentencepiece ~=0.1.97 ; extra == 'yandex'
+
+<!--intro-start-->
+
+# Holistic Evaluation of Language Models
+
+[comment]: <> (When using the img tag, which allows us to specify size, src has to be a URL.)
+<img src="https://github.com/stanford-crfm/helm/raw/main/src/helm/benchmark/static/images/helm-logo.png" alt=""  width="800"/>
+
+Welcome! The **`crfm-helm`** Python package contains code used in the **Holistic Evaluation of Language Models** project ([paper](https://arxiv.org/abs/2211.09110), [website](https://crfm.stanford.edu/helm/latest/)) by [Stanford CRFM](https://crfm.stanford.edu/). This package includes the following features:
+
+- Collection of datasets in a standard format (e.g., NaturalQuestions)
+- Collection of models accessible via a unified API (e.g., GPT-3, MT-NLG, OPT, BLOOM)
+- Collection of metrics beyond accuracy (efficiency, bias, toxicity, etc.)
+- Collection of perturbations for evaluating robustness and fairness (e.g., typos, dialect)
+- Modular framework for constructing prompts from datasets
+- Proxy server for managing accounts and providing unified interface to access models
+<!--intro-end-->
+
+To get started, refer to [the documentation on Read the Docs](https://crfm-helm.readthedocs.io/) for how to install and run the package.
+
+## Directory Structure
+
+The directory structure for this repo is as follows
+
+```
+├── docs # MD used to generate readthedocs
+│
+├── scripts # Python utility scripts for HELM
+│ ├── cache
+│ ├── data_overlap # Calculate train test overlap
+│ │ ├── common
+│ │ ├── scenarios
+│ │ └── test
+│ ├── efficiency
+│ ├── fact_completion
+│ ├── offline_eval
+│ └── scale
+└── src
+├── helm # Benchmarking Scripts for HELM
+│ │
+│ ├── benchmark # Main Python code for running HELM
+│ │ │
+│ │ └── static # Current JS (Jquery) code for rendering front-end
+│ │ │
+│ │ └── ...
+│ │
+│ ├── common # Additional Python code for running HELM
+│ │
+│ └── proxy # Python code for external web requests
+│
+└── helm-frontend # New React Front-end
+```
+
+# Holistic Evaluation of Text-To-Image Models
+
+<img src="https://github.com/stanford-crfm/helm/raw/heim/src/helm/benchmark/static/heim/images/heim-logo.png" alt=""  width="800"/>
+
+Significant effort has recently been made in developing text-to-image generation models, which take textual prompts as 
+input and generate images. As these models are widely used in real-world applications, there is an urgent need to 
+comprehensively understand their capabilities and risks. However, existing evaluations primarily focus on image-text 
+alignment and image quality. To address this limitation, we introduce a new benchmark, 
+**Holistic Evaluation of Text-To-Image Models (HEIM)**.
+
+We identify 12 different aspects that are important in real-world model deployment, including:
+
+- image-text alignment
+- image quality
+- aesthetics
+- originality
+- reasoning
+- knowledge
+- bias
+- toxicity
+- fairness
+- robustness
+- multilinguality
+- efficiency
+
+By curating scenarios encompassing these aspects, we evaluate state-of-the-art text-to-image models using this benchmark. 
+Unlike previous evaluations that focused on alignment and quality, HEIM significantly improves coverage by evaluating all 
+models across all aspects. Our results reveal that no single model excels in all aspects, with different models 
+demonstrating strengths in different aspects.
+
+This repository contains the code used to produce the [results on the website](https://crfm.stanford.edu/heim/latest/) 
+and [paper](https://arxiv.org/abs/2311.04287).
+
+# Tutorial
+
+This tutorial will explain how to use the HELM command line tools to run benchmarks, aggregate statistics, and visualize results.
+
+We will run two runs using the `mmlu` scenario on the `openai/gpt2` model. The `mmlu` scenario implements the **Massive Multitask Language (MMLU)** benchmark from [this paper](https://arxiv.org/pdf/2009.03300.pdf), and consists of a Question Answering (QA) task using a dataset with questions from 57 subjects such as elementary mathematics, US history, computer science, law, and more. Note that GPT-2 performs poorly on MMLU, so this is just a proof of concept. We will run two runs: the first using questions about anatomy, and the second using questions about philosophy.
+
+## Using `helm-run`
+
+`helm-run` is a command line tool for running benchmarks.
+
+To run this benchmark using the HELM command-line tools, we need to specify **run spec descriptions** that describes the desired runs. For this example, the run spec descriptions are `mmlu:subject=anatomy,model=openai/gpt2` (for anatomy) and `mmlu:subject=philosophy,model=openai/gpt2` (for philosophy).
+
+Next, we need to create a **run spec configuration file** containing these run spec descriptions. A run spec configuration file is a text file containing `RunEntries` serialized to JSON, where each entry in `RunEntries` contains a run spec description. The `description` field of each entry should be a **run spec description**. Create a text file named `run_entries.conf` with the following contents:
+
+```
+entries: [
+  {description: "mmlu:subject=anatomy,model=openai/gpt2", priority: 1},
+  {description: "mmlu:subject=philosophy,model=openai/gpt2", priority: 1},
+]
+```
+
+We will now use `helm-run` to execute the runs that have been specified in this run spec configuration file. Run this command:
+
+```
+helm-run --conf-paths run_entries.conf --suite v1 --max-eval-instances 10
+```
+
+The meaning of the additional arguments are as follows:
+
+- `--suite` specifies a subdirectory under the output directory in which all the output will be placed.
+- `--max-eval-instances` limits evaluation to only the first *N* inputs (i.e. instances) from the benchmark.
+
+`helm-run` creates an environment directory environment and an output directory by default.
+
+-  The environment directory is `prod_env/` by default and can be set using `--local-path`. Credentials for making API calls should be added to a `credentials.conf` file in this directory.
+-  The output directory is `benchmark_output/` by default and can be set using `--output-path`.
+
+After running this command, navigate to the `benchmark_output/runs/v1/` directory. This should contain a two sub-directories named `mmlu:subject=anatomy,model=openai_gpt2` and `mmlu:subject=philosophy,model=openai_gpt2`. Note that the names of these sub-directories is based on the run spec descriptions we used earlier, but with `/` replaced with `_`.
+
+Each output sub-directory will contain several JSON files that were generated during the corresponding run:
+
+- `run_spec.json` contains the `RunSpec`, which specifies the scenario, adapter and metrics for the run.
+- `scenario.json` contains a serialized `Scenario`, which contains the scenario for the run and specifies the instances (i.e. inputs) used.
+- `scenario_state.json` contains a serialized `ScenarioState`, which contains every request to and response from the model.
+- `per_instance_stats.json` contains a serialized list of `PerInstanceStats`, which contains the statistics produced for the metrics for each instance (i.e. input).
+- `stats.json` contains a serialized list of `PerInstanceStats`, which contains the statistics produced for the metrics, aggregated across all instances (i.e. inputs).
+
+`helm-run` provides additional arguments that can be used to filter out `--models-to-run`, `--groups-to-run` and `--priority`. It can be convenient to create a large `run_entries.conf` file containing every run spec description of interest, and then use these flags to filter down the RunSpecs to actually run. As an example, the main `run_specs.conf` file used for the HELM benchmarking paper can be found [here](https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/presentation/run_specs.conf).
+
+**Using model or model_deployment:** Some models have several deployments (for exmaple `eleutherai/gpt-j-6b` is deployed under `huggingface/gpt-j-6b`, `gooseai/gpt-j-6b` and `together/gpt-j-6b`). Since the results can differ depending on the deployment, we provide a way to specify the deployment instead of the model. Instead of using `model=eleutherai/gpt-g-6b`, use `model_deployment=huggingface/gpt-j-6b`. If you do not, a deployment will be arbitrarily chosen. This can still be used for models that have a single deployment and is a good practice to follow to avoid any ambiguity.
+
+## Using `helm-summarize`
+
+The `helm-summarize` reads the output files of `helm-run` and computes aggregate statistics across runs. Run the following:
+
+```
+helm-summarize --suite v1
+```
+
+This reads the pre-existing files in `benchmark_output/runs/v1/` that were written by `helm-run` previously, and writes the following new files back to `benchmark_output/runs/v1/`:
+
+- `summary.json` contains a serialized `ExecutiveSummary` with a date and suite name.
+- `run_specs.json` contains the run spec descriptions for all the runs.
+- `runs.json` contains serialized list of `Run`, which contains the run path, run spec and adapter spec and statistics for each run.
+- `groups.json` contains a serialized list of `Table`, each containing information about groups in a group category.
+- `groups_metadata.json` contains a list of all the groups along with a human-readable description and a taxonomy.
+
+Additionally, for each group and group-relavent metric, it will output a pair of files: `benchmark_output/runs/v1/groups/latex/<group_name>_<metric_name>.tex` and `benchmark_output/runs/v1/groups/json/<group_name>_<metric_name>.json`. These files contain the statistics for that metric from each run within the group.
+
+<!--
+# TODO(#1441): Enable plots
+
+## Using `helm-create-plots`
+
+The `helm-create-plots` reads the `groups` directory created by `helm-summarize` and creates plots, equivalent to those use in the HELM paper. Run the following:
+
+```
+helm-create-plots --suite v1
+```
+
+This reads the pre-existing files in `benchmark_output/runs/v1/groups` that were written by `helm-summarize` previously,
+and creates plots (`.png` or `.pdf`) at `benchmark_output/runs/v1/plots`.
+
+-->
+
+## Using `helm-server`
+
+Finally, the `helm-server` command launches a web server to visualize the output files of `helm-run` and `helm-benchmark`. Run:
+
+```
+helm-server
+```
+
+Open a browser and go to http://localhost:8000/ to view the visualization. You should see a similar view as [live website for the paper](https://crfm.stanford.edu/helm/v1.0/), but for the data from your benchmark runs. The website has three main sections:
+
+- **Models** contains a list of available models.
+- **Scenarios** contains a list of available scenarios.
+- **Results** contains results from the runs, organized into groups and categories of groups.
+- **Raw Runs** contains a searchable list of runs.
+
+## Other Tips
+
+- The suite name can be used as a versioning mechanism to separate runs using different versions of scenarios or models.
+- Tools such as [`jq`](https://stedolan.github.io/jq/) are useful for examining the JSON output files on the command line.

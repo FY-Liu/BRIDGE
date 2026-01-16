@@ -16,7 +16,7 @@ params_path = BASE_DIR / 'params' / 'all_a_pyirt.csv'
 plots_dir = BASE_DIR / 'plots'
 plots_dir.mkdir(exist_ok=True)
 
-# Load Cybench task IDs
+# Load Cybench task IDs and difficulty labels
 def load_jsonl_records(path):
     records = []
     with open(path, 'r') as f:
@@ -26,7 +26,21 @@ def load_jsonl_records(path):
 
 cybench_records = load_jsonl_records(cybench_results_path)
 cybench_task_ids = {record['task_id'] for record in cybench_records}
+
+# Create task_id -> difficulty_label mapping
+task_difficulty_map = {}
+for record in cybench_records:
+    task_id = record['task_id']
+    if task_id not in task_difficulty_map:
+        task_difficulty_map[task_id] = record.get('difficulty_label', 'unlabelled')
+
 print(f"# of tasks in Cybench: {len(cybench_task_ids)}")
+
+# Count by difficulty
+difficulty_counts = {}
+for label in task_difficulty_map.values():
+    difficulty_counts[label] = difficulty_counts.get(label, 0) + 1
+print(f"Difficulty distribution: {difficulty_counts}")
 
 # Load IRT parameters
 df = pd.read_csv(params_path)
@@ -37,6 +51,9 @@ if df.columns[0] != 'task_id':
 # Mark Cybench tasks
 df['task_source'] = 'other'
 df.loc[df['task_id'].isin(cybench_task_ids), 'task_source'] = 'cybench'
+
+# Add difficulty_label column
+df['difficulty_label'] = df['task_id'].map(task_difficulty_map).fillna('unlabelled')
 
 # Define prediction function (from METR-only fit)
 # These parameters are from fitting ONLY on METR data
@@ -92,11 +109,41 @@ if mask.sum() > 0:
     # Create log error column for visualization
     cybench_predictions.loc[mask, 'log_error'] = y_pred - y_actual
 
+    # Define colors for difficulty levels
+    difficulty_colors = {
+        'very_easy': '#2ecc71',  # Green
+        'easy': '#3498db',       # Blue
+        'medium': '#f39c12',     # Orange
+        'hard': '#e74c3c',       # Red
+        'unlabelled': '#95a5a6'  # Gray
+    }
+
+    difficulty_order = ['very_easy', 'easy', 'medium', 'hard', 'unlabelled']
+    difficulty_labels_display = {
+        'very_easy': 'Very Easy',
+        'easy': 'Easy',
+        'medium': 'Medium',
+        'hard': 'Hard',
+        'unlabelled': 'Unlabelled'
+    }
+
     # Create visualization
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
-    # Left plot: Predicted vs Actual
-    ax1.scatter(actual, predicted, alpha=0.6, s=50)
+    # Left plot: Predicted vs Actual, colored by difficulty
+    for diff in difficulty_order:
+        diff_mask = mask & (cybench_predictions['difficulty_label'] == diff)
+        if diff_mask.sum() > 0:
+            ax1.scatter(
+                cybench_predictions.loc[diff_mask, 'human_minutes'],
+                cybench_predictions.loc[diff_mask, 'predicted_minutes'],
+                c=difficulty_colors[diff],
+                label=f"{difficulty_labels_display[diff]} ({diff_mask.sum()})",
+                alpha=0.7,
+                s=60,
+                edgecolors='white',
+                linewidths=0.5
+            )
 
     # Perfect prediction line
     min_val = min(actual.min(), predicted.min())
@@ -106,7 +153,7 @@ if mask.sum() > 0:
 
     # 2x error bands
     ax1.fill_between([min_val, max_val], [min_val/2, max_val/2],
-                     [min_val*2, max_val*2], alpha=0.2, color='gray',
+                     [min_val*2, max_val*2], alpha=0.15, color='gray',
                      label='2x Error Band')
 
     ax1.set_xlabel('Actual FST (minutes)', fontsize=12)
@@ -115,30 +162,39 @@ if mask.sum() > 0:
                   fontsize=13, fontweight='bold')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
-    ax1.legend()
+    ax1.legend(loc='upper left', fontsize=9)
     ax1.grid(True, alpha=0.3)
 
     # Right plot: Residuals colored by difficulty
-    scatter = ax2.scatter(actual,
-                         cybench_predictions.loc[mask, 'log_error'],
-                         c=cybench_predictions.loc[mask, 'b'],
-                         cmap='RdYlGn_r', alpha=0.6, s=50)
+    for diff in difficulty_order:
+        diff_mask = mask & (cybench_predictions['difficulty_label'] == diff)
+        if diff_mask.sum() > 0:
+            ax2.scatter(
+                cybench_predictions.loc[diff_mask, 'human_minutes'],
+                cybench_predictions.loc[diff_mask, 'log_error'],
+                c=difficulty_colors[diff],
+                label=difficulty_labels_display[diff],
+                alpha=0.7,
+                s=60,
+                edgecolors='white',
+                linewidths=0.5
+            )
 
     ax2.axhline(y=0, color='k', linestyle='--', linewidth=2)
-    ax2.axhline(y=np.log(2), color='gray', linestyle=':', alpha=0.5, label='2x over')
-    ax2.axhline(y=-np.log(2), color='gray', linestyle=':', alpha=0.5, label='2x under')
+    ax2.axhline(y=np.log(2), color='gray', linestyle=':', alpha=0.5)
+    ax2.axhline(y=-np.log(2), color='gray', linestyle=':', alpha=0.5)
+
+    # Add text annotations for the lines
+    ax2.text(max_val * 0.7, np.log(2) + 0.15, '2x over', fontsize=9, color='gray')
+    ax2.text(max_val * 0.7, -np.log(2) - 0.25, '2x under', fontsize=9, color='gray')
 
     ax2.set_xlabel('Actual FST (minutes)', fontsize=12)
     ax2.set_ylabel('Log Error (log(pred) - log(actual))', fontsize=12)
-    ax2.set_title('Prediction Residuals by Task Difficulty',
+    ax2.set_title('Prediction Residuals by Difficulty Label',
                   fontsize=13, fontweight='bold')
     ax2.set_xscale('log')
-    ax2.legend()
+    ax2.legend(loc='upper right', fontsize=9)
     ax2.grid(True, alpha=0.3)
-
-    # Add colorbar
-    cbar = plt.colorbar(scatter, ax=ax2)
-    cbar.set_label('Task Difficulty (b)', fontsize=11)
 
     plt.tight_layout()
 
